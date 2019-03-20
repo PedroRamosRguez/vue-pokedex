@@ -52,7 +52,7 @@
               <!-- Añadir la funcion de clickar para mostrar el pokemon... -->
               <template>
                 <div v-for="(evolve,index) in pokemon.evolves" :key="index" style="display:inline-block;">
-                  <img class="pokemon-evolution" v-if="evolve" :src= "'https://img.pokemondb.net/artwork/' + evolve.name + '.jpg'">
+                  <img @click="pokemonSelectedById(evolve.id)" class="pokemon-evolution" v-if="evolve" :src= "'https://img.pokemondb.net/artwork/' + evolve.name + '.jpg'">
                   &nbsp&nbsp <font-awesome-icon icon="arrow-right" v-if="index + 1 < pokemon.evolves.length"/> &nbsp&nbsp
                 </div>
               </template>
@@ -67,15 +67,23 @@
           <div class="col-sm-3 offset-sm-1">
             <div class="card ">
               <div class="card-body h-25">
-                <p >{{ pokemon.description[0].description }}</p> 
+                <template>
+                  <p v-for="(desc,index) in pokemon.description" :key="index">
+                    {{ desc.description }}
+                  </p>   
+                </template>
+                
               </div>
             </div>
-            <button @click="incrementId">clickme</button>
+            <!-- <button @click="incrementId">clickme</button> -->
             <img @click="changeLanguageDescription('ja')" src="https://image.flaticon.com/icons/svg/206/206789.svg" alt="Japanish language" class="replaced-svg languaje-icon" >
             <img @click="changeLanguageDescription('en')" src="https://image.flaticon.com/icons/svg/1377/1377975.svg" alt="English language" class="replaced-svg languaje-icon" >
             <img @click="changeLanguageDescription('es')" src="https://image.flaticon.com/icons/svg/1377/1377973.svg" alt="Spanish language" class="replaced-svg languaje-icon" >
             <!-- <img @click="changeLanguageDescription('red-version')" src="../assets/red_version.png" alt="Red Version" > -->
             <!-- <img src="./assets/logo.png"> -->
+          </div>
+          <div class="row justify-content-md-center">
+            <button  @click="decrementId" class="page-link" href="#" aria-label="Previous"><font-awesome-icon icon="angle-double-left" /></button> &nbsp <input type="text" placeholder="Find Pokemon">&nbsp<button   @click="incrementId" class="page-link" href="#" aria-label="Next"><font-awesome-icon icon="angle-double-right" /></button>
           </div>
     </div>
     <!-- <div class="row justify-content-md-center">
@@ -89,7 +97,8 @@ import lastPokemon from '../constants.js';
 
 const axios = require('axios');
 let language = 'en'
-let version = 'red'
+let version = 'red';
+var count=0;
 //falta filtrar la descripcion por juegos e idiomas...
 export default {
   name: 'pokemonInformation',
@@ -117,6 +126,32 @@ export default {
       this.pokemon.description = []
       this.getPokemonDescription(this.pokemon.id, language)
     },
+    filterDistinctPokemonDescription(pokemonDescription){
+      if(this.pokemon.description.length == 1){
+        if(pokemonDescription.flavor_text.toLowerCase() !== this.pokemon.description[0].description.toLowerCase()){
+          this.pokemon.description.push({
+            'language': pokemonDescription.language.name ,
+            'version': pokemonDescription.version.name,
+            'description': pokemonDescription.flavor_text
+          })
+        }
+      }else{
+        for (let i = 0; i < this.pokemon.description.length; i++) {
+          const element = this.pokemon.description[i];
+          if(pokemonDescription.flavor_text.toLowerCase() !== element.description.toLowerCase()){
+            count +=1;
+          }
+          if(count == this.pokemon.description.length){
+            this.pokemon.description.push({
+              'language': pokemonDescription.language.name ,
+              'version': pokemonDescription.version.name,
+              'description': pokemonDescription.flavor_text
+            })
+            count = 0;
+          }
+        }
+      }
+    },
     // funcion para obtener la informacion completa del pokemon
     async getPokemonInfo(id) {
       await axios.get(`https://pokeapi.co/api/v2/pokemon/${id}`)
@@ -143,6 +178,7 @@ export default {
           this.pokemon.sprites = pokemonData.sprites;
           this.getEvolves(id);
           this.getPokemonDescription(id, language);
+          // this.filterDistinctPokemonDescription(this.pokemon.description)
         })
         .catch((error) => {
           console.log(error);
@@ -154,7 +190,7 @@ export default {
     },
     // funcion para obtener las evoluciones que tenga el pokemon
     async getEvolves(pokemonId) {
-      console.log(pokemonId)
+      console.log('id en la evolucion->'+pokemonId)
       await axios.get(`https://pokeapi.co/api/v2/evolution-chain/${pokemonId}`)
         .then((response) => {
           if (response.data.chain.evolves_to.length > 0) {
@@ -187,28 +223,20 @@ export default {
         });
     },
     async getPokemonDescription(pokemonId, language){
-      //pokemon-species/1/
       await axios.get('https://pokeapi.co/api/v2/pokemon-species/'+pokemonId.toString())
       .then((response) => {
         for (let i = 0; i < response.data.flavor_text_entries.length; i++) {
           const languageDescription = response.data.flavor_text_entries[i];
-          //eng
-          // console.log(languageDescription)
           if(languageDescription.language.name === language ){
             this.pokemon.description.push({
               'language': languageDescription.language.name ,
               'version': languageDescription.version.name,
               'description': languageDescription.flavor_text
             })
-            console.log('encontro el idioma..')
-            // console.log(this.pokemon.description)
+            //desde que encuentre la primera coincidencia para el bucle
+            break;
           }
-          
         }
-        // for (const i in response.data.flavor_text_entries.length) {
-        //     const desc = response.data.flavor_text_entries[i];
-        //     console.log(desc)
-        //   }
       })
       .catch((error) => {
         console.log(error)
@@ -223,6 +251,7 @@ export default {
       this.pokemon.abilities = [];
       this.pokemon.abilityDescription = [];
       this.pokemon.evolves = [];
+      this.pokemon.description = [];
     },
     // incrementa el identificador del pokemon (para cuando le de a la flecha izquierda a en el inferior de la pantalla)
     decrementId() {
@@ -233,7 +262,18 @@ export default {
       this.pokemon.abilities = [];
       this.pokemon.abilityDescription = [];
       this.pokemon.evolves = [];
+      this.pokemon.description = [];
     },
+    pokemonSelectedById(id){
+      this.pokemon.id = id
+      this.getPokemonInfo(this.pokemon.id);
+      this.pokemon.types = [];
+      this.pokemon.stats = [];
+      this.pokemon.abilities = [];
+      this.pokemon.abilityDescription = [];
+      this.pokemon.evolves = [];
+      this.pokemon.description = [];
+    }
   },
   created() {
     this.getPokemonInfo(this.pokemon.id);

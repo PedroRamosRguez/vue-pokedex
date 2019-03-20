@@ -79,9 +79,9 @@
               <img src="https://image.flaticon.com/icons/svg/206/206789.svg" alt="Japanish language" class="replaced-svg languaje-icon" >
             </div> -->
       </div>
-      <div class="row justify-content-md-center">
+      <!-- <div class="row justify-content-md-center">
          <button class="page-link" href="#" aria-label="Previous"><font-awesome-icon icon="angle-double-left" /></button> &nbsp <input type="text" placeholder="Find Pokemon">&nbsp<button  class="page-link" href="#" aria-label="Next"><font-awesome-icon icon="angle-double-right" /></button>
-      </div>
+      </div> -->
     </div>
 </template>
 
